@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Un Ramito Para Mi Niña</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: black;
+      overflow: hidden;
+      font-family: 'Comic Sans MS', cursive;
+      user-select: none;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    #musicBtn {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #FF69B4;
+      border: none;
+      border-radius: 20px;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 0 10px #FF69B4;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="ramoCanvas"></canvas>
+  <button id="musicBtn">🎵 Reproducir música</button>
+
+  <audio id="audioPlayer" src="musica.mp3" loop></audio>
+
+  <script>
+    const audio = document.getElementById('audioPlayer');
+    const btn = document.getElementById('musicBtn');
+
+    btn.addEventListener('click', () => {
+      if (audio.paused) {
+        audio.play();
+        btn.textContent = "⏸️ Pausar música";
+      } else {
+        audio.pause();
+        btn.textContent = "🎵 Reproducir música";
+      }
+    });
+
+    // Canvas resize setup
+    const canvas = document.getElementById("ramoCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    // --- Aquí sigue todo tu código original para el ramo animado ---
+
+    const petals = ["#FFB6C1", "#FFD700", "#87CEFA", "#FFFFFF", "#FFA500", "#DA70D6"];
+    const centers = "#FFFF00";
+    const hearts = [], sparkles = [], teAmoParticles = [];
+    const HEART_COUNT = 50, SPARKLE_COUNT = 30, TE_AMO_COUNT = 25;
+
+    for (let i = 0; i < HEART_COUNT; i++)
+      hearts.push({ x: Math.random() * canvas.width, y: Math.random() * -canvas.height, size: Math.random() * 15 + 6, speed: Math.random() * 1.5 + 0.5, opacity: Math.random() * 0.6 + 0.4 });
+
+    for (let i = 0; i < SPARKLE_COUNT; i++)
+      sparkles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: Math.random() * 3 + 1, maxSize: Math.random() * 5 + 2, growing: Math.random() > 0.5, opacity: Math.random() * 0.7 + 0.3 });
+
+    for (let i = 0; i < TE_AMO_COUNT; i++) {
+      teAmoParticles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * -canvas.height,
+        speed: Math.random() * 1 + 0.5,
+        opacity: Math.random() * 0.8 + 0.2,
+        size: Math.random() * 15 + 12,
+        colorShift: 0
+      });
+    }
+
+    const flowerOscillation = Array(6).fill(0).map(() => Math.random() * Math.PI * 2);
+    const petalAngles = Array.from({ length: 6 }, () => Array(6).fill(0).map(() => Math.random() * Math.PI * 2));
+
+    function drawHeart(x, y, size, opacity) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(size / 15, size / 15);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(0, -4, -6, -4, -6, 0);
+      ctx.bezierCurveTo(-6, 4, 0, 8, 0, 14);
+      ctx.bezierCurveTo(0, 8, 6, 4, 6, 0);
+      ctx.bezierCurveTo(6, -4, 0, -4, 0, 0);
+      ctx.fillStyle = `rgba(255, 0, 100, ${opacity})`;
+      ctx.shadowColor = `rgba(255, 20, 147, ${opacity})`;
+      ctx.shadowBlur = 15;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawSparkle(x, y, size, opacity) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = `rgba(255,255,255,${opacity})`;
+      ctx.shadowColor = "white";
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.lineTo(size / 3, -size / 3);
+      ctx.lineTo(size, 0);
+      ctx.lineTo(size / 3, size / 3);
+      ctx.lineTo(0, size);
+      ctx.lineTo(-size / 3, size / 3);
+      ctx.lineTo(-size, 0);
+      ctx.lineTo(-size / 3, -size / 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawFlower(x, y, scale, petalColor, centerColor, offset, index) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      for (let i = 0; i < 6; i++) {
+        ctx.save();
+        ctx.rotate(Math.PI / 3 * i);
+        const petalOsc = Math.sin(petalAngles[index][i]) * 3;
+        ctx.fillStyle = petalColor;
+        ctx.shadowColor = petalColor;
+        ctx.shadowBlur = 25;
+        ctx.beginPath();
+        ctx.arc(0, 20 + petalOsc, 15, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.beginPath();
+      ctx.fillStyle = centerColor;
+      ctx.shadowColor = centerColor;
+      ctx.shadowBlur = 20;
+      ctx.arc(0, 0, 12, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawTeAmo(x, y, opacity, size, colorShift) {
+      const r = 255;
+      const g = Math.floor(105 + 50 * Math.sin(colorShift));
+      const b = Math.floor(180 + 50 * Math.cos(colorShift));
+      ctx.save();
+      ctx.font = `${size * 0.6}px Comic Sans MS`;
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+      ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+      ctx.shadowBlur = 10;
+      ctx.textAlign = "center";
+      ctx.fillText("Te Amo", x, y);
+      ctx.restore();
+    }
+
+    function drawBackground() {
+      for (let heart of hearts) {
+        drawHeart(heart.x, heart.y, heart.size, heart.opacity);
+        heart.y += heart.speed;
+        if (heart.y > canvas.height + 20) {
+          heart.y = -20;
+          heart.x = Math.random() * canvas.width;
+          heart.opacity = Math.random() * 0.6 + 0.4;
+        }
+      }
+      for (let sparkle of sparkles) {
+        sparkle.size += sparkle.growing ? 0.05 : -0.05;
+        if (sparkle.size >= sparkle.maxSize || sparkle.size <= 1) sparkle.growing = !sparkle.growing;
+        drawSparkle(sparkle.x, sparkle.y, sparkle.size, sparkle.opacity);
+      }
+      for (let t of teAmoParticles) {
+        t.colorShift += 0.05;
+        drawTeAmo(t.x, t.y, t.opacity, t.size, t.colorShift);
+        t.y += t.speed;
+        if (t.y > canvas.height) {
+          t.y = -20;
+          t.x = Math.random() * canvas.width;
+        }
+      }
+    }
+
+    function drawWrap(x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = "#FFF8DC";
+      ctx.shadowColor = "#FFD700";
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(60, 0);
+      ctx.lineTo(30, 120);
+      ctx.lineTo(-30, 120);
+      ctx.lineTo(-60, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.fillStyle = "#FF69B4";
+      ctx.shadowColor = "#FF69B4";
+      ctx.shadowBlur = 15;
+      ctx.arc(0, 100, 15, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawRibbon(x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = "#FF69B4";
+      ctx.beginPath();
+      ctx.moveTo(-40, 0);
+      ctx.lineTo(-80, 30);
+      ctx.lineTo(-40, 40);
+      ctx.lineTo(-10, 20);
+      ctx.lineTo(10, 20);
+      ctx.lineTo(40, 40);
+      ctx.lineTo(80, 30);
+      ctx.lineTo(40, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(0, 20, 10, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawText(x, y) {
+      ctx.save();
+      ctx.font = "bold 28px Comic Sans MS";
+      ctx.textAlign = "center";
+      ctx.shadowColor = "red";
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = "red";
+      ctx.fillText("I Love You My Girl ❤", x, y);
+      ctx.restore();
+    }
+
+    function drawBouquet() {
+      const cx = canvas.width / 2;
+      const cy = canvas.height * 0.42;
+
+      // Primero la base (wrap y ribbon)
+      drawWrap(cx, cy);
+      drawRibbon(cx, cy + 100);
+
+      // Luego las flores por encima
+      for (let i = 0; i < 6; i++) {
+        flowerOscillation[i] += 0.03;
+        for (let j = 0; j < 6; j++) {
+          petalAngles[i][j] += 0.05;
+        }
+      }
+
+      drawFlower(cx - 110, cy - 60, 1.8, petals[0], centers, flowerOscillation[0], 0);
+      drawFlower(cx - 55, cy - 80, 1.8, petals[1], centers, flowerOscillation[1], 1);
+      drawFlower(cx, cy - 100, 1.8, petals[2], centers, flowerOscillation[2], 2);
+      drawFlower(cx + 55, cy - 80, 1.8, petals[3], centers, flowerOscillation[3], 3);
+      drawFlower(cx + 110, cy - 60, 1.8, petals[4], centers, flowerOscillation[4], 4);
+      drawFlower(cx, cy - 40, 1.8, petals[5], centers, flowerOscillation[5], 5);
+
+      // Texto final
+      drawText(cx, cy + 160);
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBackground();
+      drawBouquet();
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
